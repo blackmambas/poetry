@@ -1,9 +1,9 @@
 import os
-import shutil
 import tempfile
-from io import open
 
 from subprocess import CalledProcessError
+
+from clikit.io import NullIO
 
 from poetry.config import Config
 from poetry.utils.helpers import get_http_basic_auth
@@ -22,11 +22,12 @@ from .base_installer import BaseInstaller
 
 
 class PipInstaller(BaseInstaller):
-    def __init__(self, env, io):  # type: (Env, ...) -> None
+    def __init__(self, env, io, pool):  # type: (Env, ...) -> None
         self._env = env
         self._io = io
+        self._pool = pool
 
-    def install(self, package, update=False):
+    def install(self, package, update=False, target=None):
         if package.source_type == "directory":
             self.install_directory(package)
 
@@ -40,33 +41,28 @@ class PipInstaller(BaseInstaller):
         args = ["install", "--no-deps"]
 
         if package.source_type == "legacy" and package.source_url:
+            repository = self._pool.repository(package.source_reference)
             parsed = urlparse.urlparse(package.source_url)
             if parsed.scheme == "http":
-                self._io.write_error(
+                self._io.error(
                     "    <warning>Installing from unsecure host: {}</warning>".format(
                         parsed.hostname
                     )
                 )
                 args += ["--trusted-host", parsed.hostname]
 
-            auth = get_http_basic_auth(
-                Config.create("auth.toml"), package.source_reference
-            )
-            if auth:
-                index_url = "{scheme}://{username}:{password}@{netloc}{path}".format(
-                    scheme=parsed.scheme,
-                    username=auth[0],
-                    password=auth[1],
-                    netloc=parsed.netloc,
-                    path=parsed.path,
-                )
-            else:
-                index_url = package.source_url
+            index_url = repository.authenticated_url
 
             args += ["--index-url", index_url]
+            if self._pool.has_default():
+                if repository.name != self._pool.default.name:
+                    args += ["--extra-index-url", self._pool.default.authenticated_url]
 
         if update:
             args.append("-U")
+
+        if target:
+            args += ["-t", target]
 
         if package.hashes and not package.source_type:
             # Format as a requirements.txt
@@ -157,7 +153,6 @@ class PipInstaller(BaseInstaller):
         return name
 
     def install_directory(self, package):
-        from poetry.io import NullIO
         from poetry.masonry.builder import SdistBuilder
         from poetry.poetry import Poetry
         from poetry.utils._compat import decode
@@ -194,7 +189,7 @@ class PipInstaller(BaseInstaller):
             # We also need it for non-PEP-517 packages
             builder = SdistBuilder(Poetry.create(pyproject.parent), NullEnv(), NullIO())
 
-            with open(setup, "w", encoding="utf-8") as f:
+            with open(setup, "w") as f:
                 f.write(decode(builder.build_setup()))
 
         if package.develop:

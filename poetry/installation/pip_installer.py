@@ -22,9 +22,10 @@ from .base_installer import BaseInstaller
 
 
 class PipInstaller(BaseInstaller):
-    def __init__(self, env, io):  # type: (Env, ...) -> None
+    def __init__(self, env, io, vendor_path):  # type: (Env, ...) -> None
         self._env = env
         self._io = io
+        self._vendor_path = vendor_path
 
     def install(self, package, update=False):
         if package.source_type == "directory":
@@ -68,6 +69,10 @@ class PipInstaller(BaseInstaller):
         if update:
             args.append("-U")
 
+        
+        if self._vendor_path:
+            args += ["-t", self._vendor_path]
+        
         if package.hashes and not package.source_type:
             # Format as a requirements.txt
             # We need to create a requirements.txt file

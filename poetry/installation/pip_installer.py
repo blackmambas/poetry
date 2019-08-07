@@ -234,6 +234,6 @@ class PipInstaller(BaseInstaller):
         pkg = Package(package.name, package.version)
         pkg.source_type = "directory"
         pkg.source_url = str(src_dir)
-        pkg.develop = True
+        pkg.develop = False
 
         self.install_directory(pkg)

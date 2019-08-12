@@ -208,7 +208,7 @@ class PipInstaller(BaseInstaller):
         args.append(req)
 
         if self._vendor_path:
-            args += ["-t", self._vendor_path]
+            args += ["-t", self._vendor_path + package.name]
 
         try:
             return self.run(*args)

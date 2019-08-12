@@ -208,9 +208,7 @@ class PipInstaller(BaseInstaller):
         args.append(req)
 
         if self._vendor_path:
-            new_path = self._vendor_path + package.name
-            if not os.path.exists(new_path)
-                os.mkdir(new_path)
+            new_path = self._vendor_path + "/" + package.name
             args += ["-t", new_path]
 
         try:

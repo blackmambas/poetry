@@ -215,7 +215,8 @@ class PipInstaller(BaseInstaller):
             return self.run(*args)
         finally:
             if not has_setup and os.path.exists(setup):
-                os.remove(setup)
+                # os.remove(setup)
+                print('done')
 
     def install_git(self, package):
         from poetry.packages import Package

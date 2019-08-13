@@ -208,15 +208,13 @@ class PipInstaller(BaseInstaller):
         args.append(req)
 
         if self._vendor_path:
-            new_path = self._vendor_path + "/" + package.name
-            args += ["-t", new_path]
+            args += ["-t", self._vendor_path]
 
         try:
             return self.run(*args)
         finally:
             if not has_setup and os.path.exists(setup):
-                # os.remove(setup)
-                print('done')
+                os.remove(setup)
 
     def install_git(self, package):
         from poetry.packages import Package
